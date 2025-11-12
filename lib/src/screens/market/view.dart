@@ -1,0 +1,146 @@
+import 'package:crypto_app/src/screens/details/view.dart';
+import 'package:crypto_app/src/screens/home/provider/coinlist_provider.dart';
+import 'package:crypto_app/src/screens/shared/coinlist_widget.dart';
+import 'package:crypto_app/src/utils/extensions.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+class MarketScreen extends ConsumerStatefulWidget {
+  const MarketScreen({super.key});
+
+  @override
+  ConsumerState<MarketScreen> createState() => _MarketScreenState();
+}
+
+class _MarketScreenState extends ConsumerState<MarketScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(coinListProvider.notifier).getCoinListAll();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final coinsAsync = ref.watch(coinListProvider);
+    // final theme = ShadTheme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ---------- Search ----------
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.width * 0.05,
+                vertical: 8,
+              ),
+              child: SearchBar(
+                padding: WidgetStateProperty.all(const EdgeInsets.all(12)),
+                shape: WidgetStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                backgroundColor: WidgetStateColor.resolveWith(
+                  (_) => Colors.white.withValues(alpha: 0.1),
+                ),
+                hintText: 'Search coins…',
+                leading: const Icon(LucideIcons.search, size: 26),
+                onChanged: (_) {},
+              ),
+            ),
+
+            Expanded(
+              child: coinsAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00D09C)),
+                ),
+                error: (err, _) => Center(
+                  child: Text(
+                    'Error: $err',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+                data: (coins) => RefreshIndicator.adaptive(
+                  onRefresh: () async =>
+                      ref.read(coinListProvider.notifier).getCoinListAll(),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.width * 0.05,
+                    ),
+                    itemCount: coins.length + 1,
+                    itemBuilder: (context, i) {
+                      if (i == coins.length) {
+                        final hasMore = ref
+                            .read(coinListProvider.notifier)
+                            .hasMore;
+                        return Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: hasMore
+                                ? const CircularProgressIndicator()
+                                : const Text('No more data'),
+                          ),
+                        );
+                      }
+
+                      final coin = coins[i];
+                      final price = coin.currentPrice;
+                      final change24h = coin.priceChangePercentage24h ?? 0;
+                      final isPositive = change24h >= 0;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CryptoDetailScreen(
+                                coinId: coin.id ?? '',
+                                coinName: coin.name ?? '',
+                                coinSymbol: coin.symbol ?? '',
+                                isPositive: isPositive,
+                                change24h: change24h,
+                                coin: coin,
+                              ),
+                            ),
+                          ),
+                          child: CoinListWidget(
+                            coin: coin,
+                            price: price,
+                            isPositive: isPositive,
+                            change24h: change24h,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            const Gap(80),
+          ],
+        ),
+      ),
+    );
+  }
+}

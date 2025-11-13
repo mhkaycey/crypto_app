@@ -1,4 +1,5 @@
 import 'package:crypto_app/src/core/services/api_endpoints.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 
 class ApiService {
@@ -22,7 +23,8 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-cg-demo-api-key': 'CG-91i1KpdARw4cfq95XGpw7MpR',
+        'x-cg-demo-api-key': dotenv.env['coingecko_api'],
+        // 'CG-91i1KpdARw4cfq95XGpw7MpR',
       },
     );
 

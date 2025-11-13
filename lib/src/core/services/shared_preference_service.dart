@@ -14,6 +14,7 @@ class SharedPreferenceService {
   static const _kCoinCachePage = 'cached_page';
   static const _kCoinCacheHasMore = 'cached_has_more';
   static const _kCoinCacheTimestamp = 'cached_timestamp';
+  static const _kFavoriteCoins = 'favorite_coins';
 
   // Save coin list + pagination state
   Future<void> cacheCoinList({
@@ -29,6 +30,32 @@ class SharedPreferenceService {
       _kCoinCacheTimestamp,
       DateTime.now().millisecondsSinceEpoch,
     );
+  }
+
+  Future<void> toggleFavoriteCoin(CryptoCoin coin) async {
+    final favorites = await getFavoriteCoins();
+    final exists = favorites.any((c) => c.id == coin.id);
+
+    if (exists) {
+      favorites.removeWhere((c) => c.id == coin.id);
+    } else {
+      favorites.add(coin);
+    }
+
+    final encoded = jsonEncode(favorites.map((c) => c.toJson()).toList());
+    await _sharedPreferences.setString(_kFavoriteCoins, encoded);
+  }
+
+  Future<List<CryptoCoin>> getFavoriteCoins() async {
+    final jsonStr = _sharedPreferences.getString(_kFavoriteCoins);
+    if (jsonStr == null) return [];
+    final List decoded = jsonDecode(jsonStr);
+    return decoded.map((j) => CryptoCoin.fromJson(j)).toList();
+  }
+
+  Future<bool> isFavorite(String id) async {
+    final favorites = await getFavoriteCoins();
+    return favorites.any((c) => c.id == id);
   }
 
   // Load cached coin list + state

@@ -1,3 +1,5 @@
+import 'package:crypto_app/src/core/provider/connectivity_provider.dart';
+import 'package:crypto_app/src/screens/details/provider/favorite_provider.dart';
 import 'package:crypto_app/src/screens/details/view.dart';
 import 'package:crypto_app/src/screens/home/provider/coinlist_provider.dart';
 import 'package:crypto_app/src/screens/shared/coinlist_widget.dart';
@@ -19,12 +21,12 @@ class CoinListScreen extends ConsumerStatefulWidget {
 }
 
 class CoinListScreenState extends ConsumerState<CoinListScreen> {
-  static const String _mockAddress = "0x742d35Cc6634C0532925a3b8D4C9A";
+  // static const String _mockAddress = "0x742d35Cc6634C0532925a3b8D4C9A";
 
   @override
   Widget build(BuildContext context) {
-    final coinsAsync = ref.watch(coinListProvider);
     final walletState = ref.watch(walletProvider);
+    final favorites = ref.watch(favoriteProvider);
 
     final theme = ShadTheme.of(context);
 
@@ -35,134 +37,155 @@ class CoinListScreenState extends ConsumerState<CoinListScreen> {
     ];
 
     return Scaffold(
-      body: coinsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF00D09C)),
-        ),
-        error: (err, _) => Center(
-          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
-        ),
-        data: (coins) => ListView(
-          padding: EdgeInsets.symmetric(horizontal: context.width * 0.05),
-          children: [
-            const Gap(16),
+      body:
+          // favorites.when(
+          //   loading: () => const Center(
+          //     child: CircularProgressIndicator(color: Color(0xFF00D09C)),
+          //   ),
+          //   error: (err, _) {
+          //     return Center(child: Text(err.toString()));
+          //     // final isConnected = ref.watch(isConnectedProvider).value ?? false;
+          //     // if (!isConnected && coinsAsync.value?.isNotEmpty == true) {
+          //     //   return Column(
+          //     //     children: [
+          //     //       const Icon(Icons.cloud_off, size: 48, color: Colors.orange),
+          //     //       const Text(
+          //     //         'Offline - Showing cached data',
+          //     //         style: TextStyle(color: Colors.orange),
+          //     //       ),
+          //     //       ElevatedButton(
+          //     //         onPressed: () =>
+          //     //             ref.read(coinListProvider.notifier).refreshCoinsAll(),
+          //     //         child: const Text('Retry'),
+          //     //       ),
+          //     //     ],
+          //     //   );
+          //     // }
+          //     // return null;
+          //   },
+          //   data: (coins) =>
+          ListView(
+            padding: EdgeInsets.symmetric(horizontal: context.width * 0.05),
+            children: [
+              const Gap(16),
 
-            // Portfolio badge
-            Container(
-              width: context.width * 0.32,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircleAvatar(radius: 15),
-                  const Gap(8),
-
-                  Text(walletState.walletName, style: theme.textTheme.h4),
-                ],
-              ),
-            ).center(),
-
-            const Gap(8),
-
-            Text(
-              '\$${NumberFormat('#,##0.00').format(walletState.amount)}',
-              style: theme.textTheme.lead.copyWith(
-                fontSize: 30,
-                color: Colors.amber,
-                fontWeight: FontWeight.w600,
-              ),
-            ).center(),
-
-            const Gap(16),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: options.map((opt) {
-                return Column(
+              // Portfolio badge
+              Container(
+                // width: context.width,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 70,
-                      height: 70,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        opt['icon'] as IconData,
-                        color: Colors.amber,
-                        size: 24,
-                      ),
-                    ).onTap(() {
-                      if (opt['name'] == 'Send') {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) =>
-                        //         const SendReceiveScreen(), //BuySell(),
-                        //   ),
-                        // );
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) {
-                            return BottomWidget(isSend: true);
-                          },
-                        );
-                      } else if (opt['name'] == 'Receive') {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) {
-                            return BottomWidget(isSend: false);
-                          },
-                        );
-                      }
-                    }),
-                    const Gap(4),
-                    Text(opt['name'] as String),
+                    const CircleAvatar(radius: 15),
+                    const Gap(8),
+
+                    Text(walletState.walletName, style: theme.textTheme.h4),
                   ],
-                );
-              }).toList(),
-            ),
+                ),
+              ).center(),
 
-            const Gap(24),
+              const Gap(8),
 
-            ...List.generate(6, (i) {
-              final coin = coins[i];
-              final price = coin.currentPrice;
-              final change24h = coin.priceChangePercentage24h ?? 0;
-              final isPositive = change24h >= 0;
+              Text(
+                '\$${NumberFormat('#,##0.00').format(walletState.amount)}',
+                style: theme.textTheme.lead.copyWith(
+                  fontSize: 30,
+                  color: Colors.amber,
+                  fontWeight: FontWeight.w600,
+                ),
+              ).center(),
 
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CryptoDetailScreen(
-                      coinId: coin.id ?? '',
-                      coinName: coin.name ?? '',
-                      coinSymbol: coin.symbol ?? '',
-                      isPositive: isPositive,
-                      change24h: change24h,
-                      coin: coin,
+              const Gap(16),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: options.map((opt) {
+                  return Column(
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          opt['icon'] as IconData,
+                          color: Colors.amber,
+                          size: 24,
+                        ),
+                      ).onTap(() {
+                        if (opt['name'] == 'Send') {
+                          // Navigator.push(
+                          //   context,
+                          //   MaterialPageRoute(
+                          //     builder: (context) =>
+                          //         const SendReceiveScreen(), //BuySell(),
+                          //   ),
+                          // );
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return BottomWidget(isSend: true);
+                            },
+                          );
+                        } else if (opt['name'] == 'Receive') {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return BottomWidget(isSend: false);
+                            },
+                          );
+                        }
+                      }),
+                      const Gap(4),
+                      Text(opt['name'] as String),
+                    ],
+                  );
+                }).toList(),
+              ),
+
+              const Gap(24),
+
+              Text("My Favorite"),
+
+              ...List.generate(favorites.length, (i) {
+                final coin = favorites[i];
+                final price = coin.currentPrice;
+                final change24h = coin.priceChangePercentage24h ?? 0;
+                final isPositive = change24h >= 0;
+
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CryptoDetailScreen(
+                        coinId: coin.id ?? '',
+                        coinName: coin.name ?? '',
+                        coinSymbol: coin.symbol ?? '',
+                        isPositive: isPositive,
+                        change24h: change24h,
+                        coin: coin,
+                      ),
                     ),
                   ),
-                ),
-                child: CoinListWidget(
-                  coin: coin,
-                  price: price,
-                  isPositive: isPositive,
-                  change24h: change24h,
-                ),
-              );
-            }),
-            const Gap(80),
-          ],
-        ),
-      ),
+                  child: CoinListWidget(
+                    coin: coin,
+                    price: price,
+                    isPositive: isPositive,
+                    change24h: change24h,
+                  ),
+                );
+              }),
+              const Gap(80),
+            ],
+          ),
     );
   }
 }

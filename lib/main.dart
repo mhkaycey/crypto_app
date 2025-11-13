@@ -2,6 +2,7 @@ import 'package:crypto_app/src/screens/dashboard.dart';
 import 'package:crypto_app/src/screens/wallet_setup/view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -11,6 +12,7 @@ import 'package:crypto_app/src/core/provider/shared_preference.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final sharedPreferences = await SharedPreferences.getInstance();
+  await dotenv.load(fileName: '.env');
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(systemNavigationBarColor: Colors.transparent),

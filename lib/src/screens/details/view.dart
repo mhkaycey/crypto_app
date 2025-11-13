@@ -2,6 +2,7 @@
 import 'package:crypto_app/src/screens/details/model/details_model.dart';
 import 'package:crypto_app/src/screens/details/provider/coin_chart.dart';
 import 'package:crypto_app/src/screens/details/provider/coin_details.dart';
+import 'package:crypto_app/src/screens/details/provider/favorite_provider.dart';
 import 'package:crypto_app/src/screens/home/model/coin_data.dart';
 import 'package:crypto_app/src/utils/extensions.dart';
 
@@ -72,6 +73,8 @@ class _CryptoDetailScreenState extends ConsumerState<CryptoDetailScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final favorites = ref.watch(favoriteProvider);
+    final favNotifier = ref.read(favoriteProvider.notifier);
 
     final detailAsync = ref.watch(coinDetailProvider(widget.coinId));
     // final chartAsync = ref.watch(
@@ -298,6 +301,8 @@ class _CryptoDetailScreenState extends ConsumerState<CryptoDetailScreen>
     // final change24h = detail.priceChangePercentage24hInCurrency.usd;
     // final isPositive = change24h >= 0;
 
+    final favNotifier = ref.read(favoriteProvider.notifier);
+
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -335,6 +340,10 @@ class _CryptoDetailScreenState extends ConsumerState<CryptoDetailScreen>
                     ],
                   ),
                 ),
+
+                Icon(LucideIcons.heart, size: 24).onTap(() {
+                  favNotifier.toggleFavorite(widget.coin);
+                }),
               ],
             ),
             const SizedBox(height: 20),

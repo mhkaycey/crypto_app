@@ -12,13 +12,15 @@ final coinRepositoryProvider = Provider((ref) => CoinListRepository());
 class CoinListNotifier extends StateNotifier<AsyncValue<List<CryptoCoin>>> {
   Ref ref;
   CoinListNotifier(this.ref) : super(const AsyncValue.loading()) {
-    getCoinList();
-    getCoinListAll();
+    _loadFromCacheAndRefresh();
   }
 
   int page = 1;
   bool _isFetching = false;
   bool hasMore = true;
+
+  // Keep a copy of all coins
+  List<CryptoCoin> _allCoins = [];
 
   Future<void> _loadFromCacheAndRefresh() async {
     final service = ref.read(sharedPreferenceServiceProvider);
@@ -27,12 +29,12 @@ class CoinListNotifier extends StateNotifier<AsyncValue<List<CryptoCoin>>> {
     if (cached != null) {
       page = cached.page;
       hasMore = cached.hasMore;
-      state = AsyncValue.data(cached.coins);
+      _allCoins = cached.coins;
+      state = AsyncValue.data(_allCoins);
     } else {
       state = const AsyncValue.loading();
     }
 
-    // Try to refresh if online
     final isConnected = await ref.read(isConnectedProvider.future);
     if (isConnected) {
       refreshCoinsAll();
@@ -52,57 +54,56 @@ class CoinListNotifier extends StateNotifier<AsyncValue<List<CryptoCoin>>> {
         hasMore = false;
       } else {
         page++;
+        _allCoins = [..._allCoins, ...result];
+        state = AsyncValue.data(_allCoins);
       }
-      final currentList = state.value ?? [];
-      state = AsyncValue.data([...currentList, ...result]);
+
+      // Cache the data
+      final service = ref.read(sharedPreferenceServiceProvider);
+      await service.cacheCoinList(
+        coins: _allCoins,
+        page: page,
+        hasMore: hasMore,
+      );
     } catch (e, sk) {
       state = AsyncValue.error(e, sk);
     } finally {
       _isFetching = false;
     }
-  }
-
-  Future<void> getCoinListAll() async {
-    if (_isFetching || !hasMore) return;
-    _isFetching = true;
-
-    try {
-      final result = await ref
-          .read(coinRepositoryProvider)
-          .getCoinList(page: page);
-
-      if (result.isEmpty) {
-        hasMore = false;
-      } else {
-        page++;
-      }
-
-      if (result.isEmpty) {
-        hasMore = false;
-      } else {
-        page++;
-      }
-      final currentList = state.value ?? [];
-      state = AsyncValue.data([...currentList, ...result]);
-    } catch (e, sk) {
-      state = AsyncValue.error(e, sk);
-    } finally {
-      _isFetching = false;
-    }
-  }
-
-  void refreshCoinsAll() {
-    page = 1;
-    hasMore = true;
-    state = const AsyncValue.loading();
-    getCoinListAll();
   }
 
   void refreshCoins() {
     page = 1;
     hasMore = true;
+    _allCoins = [];
     state = const AsyncValue.loading();
     getCoinList();
+  }
+
+  void refreshCoinsAll() {
+    page = 1;
+    hasMore = true;
+    _allCoins = [];
+    state = const AsyncValue.loading();
+    getCoinList();
+  }
+
+  void filterCoins(String query) {
+    if (query.isEmpty) {
+      state = AsyncValue.data(_allCoins);
+    } else {
+      final filtered = _allCoins.where((coin) {
+        final nameMatch = coin.name?.toLowerCase().contains(
+          query.toLowerCase(),
+        );
+        final symbolMatch = coin.symbol?.toLowerCase().contains(
+          query.toLowerCase(),
+        );
+        return nameMatch! || symbolMatch!;
+      }).toList();
+
+      state = AsyncValue.data(filtered);
+    }
   }
 }
 

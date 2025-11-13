@@ -85,7 +85,7 @@ class CryptoCoin {
     "atl_date": atlDate,
     "roi": roi,
     "last_updated": lastUpdated,
-    "sparkline_in_7d": sparklineIn7d,
+    "sparkline_in_7d": sparklineIn7d?.toJson(),
     "price_change_percentage_1h": priceChangePercentage1h,
   };
 
@@ -140,4 +140,6 @@ class SparklineIn7d {
       price: List<double>.from(json['price'].map((x) => (x as num).toDouble())),
     );
   }
+
+  Map<String, dynamic> toJson() => {"price": price};
 }
